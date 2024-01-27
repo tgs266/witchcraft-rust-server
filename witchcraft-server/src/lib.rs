@@ -300,7 +300,7 @@ pub use body::{RequestBody, ResponseWriter};
 use config::install::InstallConfig;
 use config::runtime::RuntimeConfig;
 pub use witchcraft::Witchcraft;
-pub use service::cors::CorsLayer;
+pub use crate::service::cors::CorsLayer;
 #[doc(inline)]
 pub use witchcraft_server_config as config;
 #[doc(inline)]
@@ -324,7 +324,6 @@ use crate::health::service_dependency::ServiceDependencyHealthCheck;
 use crate::health::HealthCheckRegistry;
 use crate::readiness::ReadinessCheckRegistry;
 use crate::server::Listener;
-use crate::service::cors::CorsLayer;
 use crate::shutdown_hooks::ShutdownHooks;
 use crate::status::StatusEndpoints;
 
