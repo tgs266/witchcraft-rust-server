@@ -300,6 +300,7 @@ pub use body::{RequestBody, ResponseWriter};
 use config::install::InstallConfig;
 use config::runtime::RuntimeConfig;
 pub use witchcraft::Witchcraft;
+pub use service::cors::CorsLayer;
 #[doc(inline)]
 pub use witchcraft_server_config as config;
 #[doc(inline)]
