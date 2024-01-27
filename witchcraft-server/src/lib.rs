@@ -481,7 +481,7 @@ where
         install_config: install_config.as_ref().clone(),
         thread_pool: None,
         endpoints: vec![],
-        cors_layer: CorsLayer::new(None, false, None),
+        cors_layer: CorsLayer::new(None, false, None, None),
         shutdown_hooks: ShutdownHooks::new(),
     };
 

@@ -21,6 +21,7 @@ pub struct CorsLayer {
     allow_origin: Option<String>,
     allow_credentials: bool,
     allow_methods: Option<String>,
+    allow_headers: Option<String>,
 }
 
 impl CorsLayer {
@@ -28,11 +29,13 @@ impl CorsLayer {
         allow_origin: Option<String>,
         allow_credentials: bool,
         allow_methods: Option<String>,
+        allow_headers: Option<String>,
     ) -> Self {
         CorsLayer {
             allow_origin,
             allow_credentials,
             allow_methods,
+            allow_headers,
         }
     }
 }
@@ -46,6 +49,7 @@ impl<S> Layer<S> for CorsLayer {
             allow_origin: self.allow_origin,
             allow_credentials: self.allow_credentials,
             allow_methods: self.allow_methods,
+            allow_headers: self.allow_headers,
         }
     }
 }
@@ -55,6 +59,7 @@ pub struct CorsLayerService<S> {
     allow_origin: Option<String>,
     allow_credentials: bool,
     allow_methods: Option<String>,
+    allow_headers: Option<String>,
 }
 
 impl<S, B1, B2> Service<Request<B1>> for CorsLayerService<S>
@@ -67,7 +72,6 @@ where
     async fn call(&self, req: Request<B1>) -> Self::Response {
         let mut response = self.inner.call(req).await;
         if let Some(allow_origin) = &self.allow_origin {
-            println!("attaching allow_origin \"{allow_origin}\"");
             response.headers_mut().insert(
                 HeaderName::from_str("Access-Control-Allow-Origin").unwrap(),
                 HeaderValue::from_str(&allow_origin).unwrap(),
@@ -75,10 +79,16 @@ where
         }
 
         if let Some(allow_methods) = &self.allow_methods {
-            println!("attaching allow_methods \"{allow_methods}\"");
             response.headers_mut().insert(
                 HeaderName::from_str("Access-Control-Allow-Methods").unwrap(),
                 HeaderValue::from_str(&allow_methods).unwrap(),
+            );
+        }
+
+        if let Some(allow_headers) = &self.allow_headers {
+            response.headers_mut().insert(
+                HeaderName::from_str("Access-Control-Allow-Headers").unwrap(),
+                HeaderValue::from_str(&allow_headers).unwrap(),
             );
         }
 
@@ -92,8 +102,6 @@ where
                 HeaderValue::from_str("false").unwrap(),
             ),
         };
-
-        println!("headers: {:?}", response.headers());
 
         response
     }
