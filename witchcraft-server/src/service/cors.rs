@@ -67,6 +67,7 @@ where
     async fn call(&self, req: Request<B1>) -> Self::Response {
         let mut response = self.inner.call(req).await;
         if let Some(allow_origin) = &self.allow_origin {
+            println!("attaching allow_origin \"{allow_origin}\"");
             response.headers_mut().insert(
                 HeaderName::from_str("Access-Control-Allow-Origin").unwrap(),
                 HeaderValue::from_str(&allow_origin).unwrap(),
@@ -74,6 +75,7 @@ where
         }
 
         if let Some(allow_methods) = &self.allow_methods {
+            println!("attaching allow_methods \"{allow_methods}\"");
             response.headers_mut().insert(
                 HeaderName::from_str("Access-Control-Allow-Methods").unwrap(),
                 HeaderValue::from_str(&allow_methods).unwrap(),
@@ -90,6 +92,8 @@ where
                 HeaderValue::from_str("false").unwrap(),
             ),
         };
+
+        println!("headers: {:?}", response.headers());
 
         response
     }
