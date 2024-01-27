@@ -77,7 +77,7 @@ pub(crate) async fn start(
     port: u16,
 ) -> Result<(), Error> {
     // This service handles individual HTTP requests, each running concurrently.
-    let request_service = ServiceBuilder::new()
+    let request_service= ServiceBuilder::new()
         .layer(RoutingLayer::new(mem::take(&mut witchcraft.endpoints)))
         .layer(RequestIdLayer)
         .layer(TracePropagationLayer)
@@ -92,6 +92,7 @@ pub(crate) async fn start(
         .layer(DeprecationHeaderLayer)
         .layer(KeepAliveHeaderLayer::new(&witchcraft.install_config))
         .layer(ServerHeaderLayer::new(&witchcraft.install_config)?)
+        .layer(witchcraft.cors_layer.clone())
         .layer(NoCachingLayer)
         .layer(WebSecurityLayer)
         .layer(TraceIdHeaderLayer)

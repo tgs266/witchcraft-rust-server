@@ -19,6 +19,7 @@ use crate::endpoint::extended_path::ExtendedPathEndpoint;
 use crate::endpoint::WitchcraftEndpoint;
 use crate::health::HealthCheckRegistry;
 use crate::readiness::ReadinessCheckRegistry;
+use crate::service::cors::CorsLayer;
 use crate::shutdown_hooks::ShutdownHooks;
 use crate::{blocking, RequestBody, ResponseWriter};
 use conjure_http::server::{AsyncEndpoint, AsyncService, Endpoint, Service};
@@ -40,6 +41,7 @@ pub struct Witchcraft {
     pub(crate) install_config: InstallConfig,
     pub(crate) thread_pool: Option<Arc<ThreadPool>>,
     pub(crate) endpoints: Vec<Box<dyn WitchcraftEndpoint + Sync + Send>>,
+    pub(crate) cors_layer: CorsLayer,
     pub(crate) shutdown_hooks: ShutdownHooks,
 }
 
@@ -149,6 +151,12 @@ impl Witchcraft {
                 .map(|e| Box::new(ConjureBlockingEndpoint::new(&self.metrics, thread_pool, e)))
                 .map(|e| extend_path(e, self.install_config.context_path(), prefix)),
         )
+    }
+
+    /// Add cors layer configuration
+    pub fn with_cors(&mut self, cors_layer: CorsLayer)
+    {
+        self.cors_layer = cors_layer;
     }
 
     /// Adds a future that will be run when the server begins its shutdown process.

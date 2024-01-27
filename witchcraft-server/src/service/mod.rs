@@ -40,6 +40,7 @@ pub mod routing;
 pub mod server_header;
 pub mod server_metrics;
 pub mod spans;
+pub mod cors;
 #[cfg(test)]
 mod test_util;
 pub mod tls;

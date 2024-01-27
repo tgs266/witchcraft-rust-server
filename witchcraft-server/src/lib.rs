@@ -323,6 +323,7 @@ use crate::health::service_dependency::ServiceDependencyHealthCheck;
 use crate::health::HealthCheckRegistry;
 use crate::readiness::ReadinessCheckRegistry;
 use crate::server::Listener;
+use crate::service::cors::CorsLayer;
 use crate::shutdown_hooks::ShutdownHooks;
 use crate::status::StatusEndpoints;
 
@@ -480,6 +481,7 @@ where
         install_config: install_config.as_ref().clone(),
         thread_pool: None,
         endpoints: vec![],
+        cors_layer: CorsLayer::new(None, false, None),
         shutdown_hooks: ShutdownHooks::new(),
     };
 
