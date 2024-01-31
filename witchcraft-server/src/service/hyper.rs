@@ -13,11 +13,14 @@
 // limitations under the License.
 use crate::service::{Layer, Service, ServiceBuilder};
 use conjure_error::Error;
-use futures_util::future::BoxFuture;
+use futures_util::future::{BoxFuture, MapErr};
+use futures_util::{ready, FutureExt, TryFutureExt};
 use http::{Request, Response};
 use http_body::Body;
 use hyper::server::conn::{Connection, Http};
+
 use pin_project::pin_project;
+use tracing::field::debug;
 use std::convert::Infallible;
 use std::error;
 use std::future::Future;
@@ -78,14 +81,15 @@ where
             http.http1_only(true).http1_half_close(false);
         }
 
-        HyperFuture {
-            inner: http.serve_connection(
-                req.stream,
-                AdaptorService {
-                    inner: Arc::new(req.service_builder.service(self.request_service.clone())),
-                },
-            ),
-        }
+        let conn = http.serve_connection(
+            req.stream,
+            AdaptorService {
+                inner: Arc::new(req.service_builder.service(self.request_service.clone())),
+            },
+        );
+
+        conn.with_upgrades().map_err(Error::internal_safe)
+
     }
 }
 
@@ -102,7 +106,7 @@ where
 impl<S, R, B> Future for HyperFuture<S, R, B>
 where
     S: Service<Request<hyper::Body>, Response = Response<B>> + Sync + Send,
-    R: AsyncRead + AsyncWrite + Unpin + 'static,
+    R: AsyncRead + AsyncWrite + Send + Unpin + 'static,
     B: Body + 'static + Send,
     B::Data: Send,
     B::Error: Into<Box<dyn error::Error + Sync + Send>>,
@@ -111,7 +115,36 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         self.project().inner.poll(cx).map_err(Error::internal_safe)
-    }
+}
+
+    // fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    //     let mut http_server = self.project().inner
+    //     .with_upgrades();
+
+    //     http_server.poll_unpin(cx).map_err(Error::internal_safe)
+
+    //     // let (exited_cleanly, graceful_shutdown_timeout) = loop {
+    //     //     tokio::select! {
+    //     //         conn = &mut http_server => {
+    //     //             match conn {
+    //     //                 Err(e) => {
+    //     //                     error!("hyper error while polling conn: {}",e);
+    //     //                     break (false, None);
+    //     //                 }
+    //     //                 Ok(_) => {
+    //     //                     debug!("done polling http server connection");
+    //     //                     break (true, None);
+    //     //                 }
+    //     //             }
+    //     //         },
+    //     //         _ = &mut tripwire => {
+    //     //             debug!("tripped! closing http server gracefully...");
+    //     //             break (false, Some(Duration::from_secs(15)))
+    //     //         }
+    //     //     }
+    //     // };
+    //     // self.project().inner.with_upgrades().poll_unpin(cx).map_err(Error::internal_safe)
+    // }
 }
 
 impl<S, R, B> GracefulShutdown for HyperFuture<S, R, B>
@@ -123,7 +156,14 @@ where
     B::Error: Into<Box<dyn error::Error + Sync + Send>>,
 {
     fn graceful_shutdown(self: Pin<&mut Self>) {
-        self.project().inner.graceful_shutdown()
+        // self.project().inner.graceful_shutdown()
+    }
+}
+
+impl<A, B> GracefulShutdown for MapErr<A, B>
+{
+    fn graceful_shutdown(self: Pin<&mut Self>) {
+        // self.project().inner.graceful_shutdown()
     }
 }
 
