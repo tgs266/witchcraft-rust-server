@@ -17,5 +17,5 @@ pub use cancellation::Cancellation;
 
 mod body;
 mod cancellation;
+pub mod pool;
 pub(crate) mod conjure;
-pub(crate) mod pool;
