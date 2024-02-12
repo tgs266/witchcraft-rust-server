@@ -25,6 +25,8 @@ use witchcraft_server_config::install::InstallConfig;
 
 mod job_queue;
 
+pub type SpawnResult<T> = Result<tokio::task::JoinHandle<Result<T, Error>>, Error>;
+
 struct State {
     threads: usize,
     idle_threads: usize,
@@ -178,7 +180,7 @@ impl ThreadPool {
         Ok(())
     }
 
-    pub fn spawn<F, T>(&self, f: F) -> Result<tokio::task::JoinHandle<Result<T, Error>>, Error>
+    pub fn spawn<F, T>(&self, f: F) -> SpawnResult<T>
     where
         F: FnOnce() -> T + 'static + Send,
         F: Send + 'static,
