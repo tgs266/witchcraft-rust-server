@@ -25,7 +25,7 @@ use witchcraft_server_config::install::InstallConfig;
 
 mod job_queue;
 
-pub type SpawnResult<T> = Result<tokio::task::JoinHandle<Result<T, Error>>, Error>;
+pub type SpawnResult<T> = Result<tokio::task::JoinHandle<Option<T>>, Error>;
 
 struct State {
     threads: usize,
@@ -197,10 +197,7 @@ impl ThreadPool {
         }
         
         return Ok(tokio::spawn(async move {
-            match rx.recv().await {
-                Some(result) => Ok(result),
-                None => Err(Error::internal_safe("thread pool channel closed")),
-            }
+            rx.recv().await
         }));
     }
 }
