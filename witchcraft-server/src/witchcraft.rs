@@ -46,6 +46,15 @@ pub struct Witchcraft {
 }
 
 impl Witchcraft {
+
+    /// Returns a thread pool
+    #[inline]
+    pub fn thread_pool(& mut self) -> &Arc<ThreadPool> {
+        return self
+        .thread_pool
+        .get_or_insert_with(|| Arc::new(ThreadPool::new(&self.install_config, &self.metrics)));
+    }
+
     /// Returns a reference to the server's metric registry.
     #[inline]
     pub fn metrics(&self) -> &Arc<MetricRegistry> {
@@ -144,7 +153,6 @@ impl Witchcraft {
         let thread_pool = self
             .thread_pool
             .get_or_insert_with(|| Arc::new(ThreadPool::new(&self.install_config, &self.metrics)));
-
         self.endpoints.extend(
             endpoints
                 .into_iter()

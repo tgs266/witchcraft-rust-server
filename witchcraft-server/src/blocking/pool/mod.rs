@@ -14,9 +14,10 @@
 use crate::blocking::pool::job_queue::JobQueue;
 use conjure_error::Error;
 use parking_lot::Mutex;
+use tokio::sync::mpsc;
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use witchcraft_log::error;
 use witchcraft_metrics::MetricRegistry;
@@ -175,5 +176,29 @@ impl ThreadPool {
         }
 
         Ok(())
+    }
+
+    pub fn spawn<F, T>(&self, f: F) -> Result<tokio::task::JoinHandle<Result<T, Error>>, Error>
+    where
+        F: FnOnce() -> T + 'static + Send,
+        F: Send + 'static,
+        T: Send + 'static,
+    {
+        let (tx, mut rx) = mpsc::channel::<T>(1);
+        let result = self.try_execute(move || {
+            let result = f();
+            let _ = tx.send(result);
+        });
+        match result {
+            Ok(()) => {}
+            Err(_) => return Err(Error::internal_safe("could not execute job")),
+        }
+        
+        return Ok(tokio::spawn(async move {
+            match rx.recv().await {
+                Some(result) => Ok(result),
+                None => Err(Error::internal_safe("thread pool channel closed")),
+            }
+        }));
     }
 }
