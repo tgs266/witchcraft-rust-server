@@ -14,7 +14,7 @@
 use crate::blocking::pool::job_queue::JobQueue;
 use conjure_error::Error;
 use parking_lot::Mutex;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use std::panic::{self, AssertUnwindSafe};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -186,18 +186,18 @@ impl ThreadPool {
         F: Send + 'static,
         T: Send + 'static,
     {
-        let (tx, mut rx) = mpsc::channel::<T>(1);
+        let (tx, rx) = oneshot::channel::<T>();
         let result = self.try_execute(move || {
             let result = f();
             let _ = tx.send(result);
         });
         match result {
-            Ok(()) => {}
-            Err(_) => return Err(Error::internal_safe("could not execute job")),
+            Ok(()) => Ok(tokio::spawn(async move {
+                // The oneshot receiver will either receive the value or error if the sender is dropped
+                // This changes the return type to Option<Result<T, oneshot::error::RecvError>>
+                rx.await.ok()
+            })),
+            Err(_) => Err(Error::internal_safe("could not execute job")),
         }
-        
-        return Ok(tokio::spawn(async move {
-            rx.recv().await
-        }));
     }
 }
